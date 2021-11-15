@@ -9,8 +9,8 @@
     "url": "https://github.com/electronjs/windows-installer"
   },
   "scripts": {
-    "compile": "babel -d lib/ src/",
-    "prepublish": "npm run compile",
+    "build": "babel -d lib/ src/",
+    "prepublish": "npm run build",
     "lint": "eslint src & eslint spec",
     "test": "npm run lint && ava",
     "tdd": "ava --watch"
