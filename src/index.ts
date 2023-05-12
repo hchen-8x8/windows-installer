@@ -3,6 +3,7 @@ import { createTempDir } from './temp-utils';
 import * as fs from 'fs-extra';
 import { Metadata, Options, PersonMetadata } from './options';
 import * as path from 'path';
+import rcedit from 'rcedit';
 import spawn from './spawn-promise';
 import template from 'lodash.template';
 
@@ -56,9 +57,18 @@ export async function createWindowsInstaller(options: Options): Promise<void> {
     if (useMono) {
       args.unshift(cmd);
       cmd = wineExe;
+      await spawn(cmd, args);
+    } else {
+      const settings = {
+        'icon': options.setupIcon,
+        'version-string': {
+          'FileDescription': options.description,
+          'ProductName': options.title,
+          'LegalCopyright': `Copyright © ${new Date().getFullYear()} ${options.authors || options.owners}`
+        }
+      };
+      await rcedit(appUpdate, settings);
     }
-
-    await spawn(cmd, args);
   }
 
   const defaultLoadingGif = path.join(__dirname, '..', 'resources', 'install-spinner.gif');
