@@ -3,7 +3,6 @@ import { createTempDir } from './temp-utils';
 import * as fs from 'fs-extra';
 import { Metadata, Options, PersonMetadata } from './options';
 import * as path from 'path';
-import rcedit from 'rcedit';
 import spawn from './spawn-promise';
 import template from 'lodash.template';
 
@@ -48,26 +47,33 @@ export async function createWindowsInstaller(options: Options): Promise<void> {
 
   await fs.copy(vendorUpdate, appUpdate);
   if (options.setupIcon && (options.skipUpdateIcon !== true)) {
-    let cmd = path.join(vendorPath, 'rcedit.exe');
+    let cmd = path.join(vendorPath, 'rcedit-x64.exe');
     let args = [
       appUpdate,
-      '--set-icon', options.setupIcon
+      '--set-icon', options.setupIcon,
     ];
+    if (options.description) {
+      args.push('--set-version-string', 'FileDescription', options.description);
+    }
+    if (options.title) {
+      args.push('--set-version-string', 'ProductName', options.title);
+    }
+    if (options.authors || options.owners) {
+      args.push('--set-version-string', 'LegalCopyright', `Copyright © ${new Date().getFullYear()} ${options.authors || options.owners}`);
+    }
 
     if (useMono) {
       args.unshift(cmd);
       cmd = wineExe;
-      await spawn(cmd, args);
-    } else {
-      const settings = {
-        'icon': options.setupIcon,
-        'version-string': {
-          'FileDescription': options.description,
-          'ProductName': options.title,
-          'LegalCopyright': `Copyright © ${new Date().getFullYear()} ${options.authors || options.owners}`
-        }
-      };
-      await rcedit(appUpdate, settings);
+
+    }
+
+    await spawn(cmd, args);
+    if (options.signWithParams) {
+      const signCmd = path.join(vendorPath, 'signtool.exe');
+      const signArgs = ['sign', ...options.signWithParams.split(' '), appUpdate];
+      console.log('Sign update.exe', signArgs);
+      await spawn(signCmd, signArgs);
     }
   }
 
